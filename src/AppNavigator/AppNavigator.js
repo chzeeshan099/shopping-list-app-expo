@@ -8,12 +8,8 @@ import {
   createNativeStackNavigator,
 } from '@react-navigation/native-stack';
 
-import AllTasksScreen from '../screens/AllTasksScreen';
-import AddTaskScreen from '../screens/AddTaskScreen';
-import TaskDetailsScreen from '../screens/TaskDetailsScreen';
-import EditTaskScreen from '../screens/EditTaskScreen';
-import HistoryScreen from '../screens/HistoryScreen';
-import DeletedTaskDetailsScreen from '../screens/DeletedTaskDetailsScreen';
+import HomeScreen from '../screens/HomeScreen';
+
 
 const Stack =
   createNativeStackNavigator();
@@ -23,9 +19,9 @@ export default function AppNavigator() {
     <NavigationContainer>
 
       <Stack.Navigator
-        initialRouteName="AllTasks"
+        // initialRouteName="Home"
         screenOptions={{
-          headerShown: true,
+          headerShown: false,
 
           animation:
             'slide_from_right',
@@ -48,61 +44,24 @@ export default function AppNavigator() {
         }}
       >
 
-        {/* All Tasks */}
+        {/* Home */}
         <Stack.Screen
-          name="AllTasks"
-          component={AllTasksScreen}
+          name="Home"
+          component={HomeScreen}
           options={{
-            title: 'Task Manager',
+            title: 'Home Screen',
           }}
         />
 
-        {/* Add */}
-        <Stack.Screen
-          name="AddTask"
-          component={AddTaskScreen}
-          options={{
-            title: 'Add Task',
-          }}
-        />
+      
 
-        {/* Details */}
-        <Stack.Screen
-          name="TaskDetails"
-          component={TaskDetailsScreen}
-          options={{
-            title: 'Task Details',
-          }}
-        />
+     
 
-        {/* Edit */}
-        <Stack.Screen
-          name="EditTask"
-          component={EditTaskScreen}
-          options={{
-            title: 'Edit Task',
-          }}
-        />
+      
 
-        {/* History */}
-        <Stack.Screen
-          name="History"
-          component={HistoryScreen}
-          options={{
-            title: 'Deleted Tasks',
-          }}
-        />
+       
 
-        {/* Deleted Details */}
-        <Stack.Screen
-          name="DeletedTaskDetails"
-          component={
-            DeletedTaskDetailsScreen
-          }
-          options={{
-            title: 'Deleted Task',
-          }}
-        />
+      
 
       </Stack.Navigator>
 
