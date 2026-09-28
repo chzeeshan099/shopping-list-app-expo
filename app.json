@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Todo App",
-    "slug": "todo-app-dcugwlsfccfiwmujaxltj",
+    "name": "Shopping List App",
+    "slug": "shopping-list-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/todo-logo.png",
@@ -28,7 +28,7 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "f1c6c409-d4d6-459f-bfc1-5dae309446ff"
+        "projectId": "8d36dce3-9e69-4244-86a9-6f5d396775f0"
       }
     },
     "owner": "readymes-team"
