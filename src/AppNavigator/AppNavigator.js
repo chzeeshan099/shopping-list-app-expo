@@ -8,71 +8,67 @@ import {
   createNativeStackNavigator,
 } from '@react-navigation/native-stack';
 
-import HomeScreen from '../screens/HomeScreen';
+import ListsScreen from '../screens/ListsScreen';
+import ListDetailScreen from '../screens/ListDetailScreen';
 import HistoryScreen from '../screens/HistoryScreen';
-
+import StatisticsScreen from '../screens/StatisticsScreen';
+import TemplatesScreen from '../screens/TemplatesScreen';
+import BackupScreen from '../screens/BackupScreen';
 
 const Stack =
   createNativeStackNavigator();
 
-export default function AppNavigator() {
+const AppNavigator = () => {
   return (
     <NavigationContainer>
-
       <Stack.Navigator
-        // initialRouteName="Home"
+        initialRouteName="Lists"
         screenOptions={{
           headerShown: false,
-
           animation:
             'slide_from_right',
-
-          headerShadowVisible: false,
-
-          headerStyle: {
-            backgroundColor:
-              '#f3f4f6',
-          },
-
-          headerTitleStyle: {
-            fontWeight: '700',
-          },
-
           contentStyle: {
             backgroundColor:
               '#080808',
           },
         }}
       >
-
-        {/* Home */}
         <Stack.Screen
-          name="Home"
-          component={HomeScreen}
-          options={{
-            title: 'Home Screen',
-          }}
+          name="Lists"
+          component={ListsScreen}
         />
 
+        <Stack.Screen
+          name="ListDetail"
+          component={ListDetailScreen}
+        />
 
-       {/* History */}
         <Stack.Screen
           name="History"
           component={HistoryScreen}
         />
 
-      
+        <Stack.Screen
+          name="Statistics"
+          component={
+            StatisticsScreen
+          }
+        />
 
-     
+        <Stack.Screen
+          name="Templates"
+          component={
+            TemplatesScreen
+          }
+        />
 
-      
-
-       
-
-      
-
+        <Stack.Screen
+          name="Backup"
+          component={BackupScreen}
+        />
       </Stack.Navigator>
-
     </NavigationContainer>
   );
-}
+};
+
+export default AppNavigator;
