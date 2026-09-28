@@ -1,0 +1,36 @@
+{
+  "expo": {
+    "name": "Todo App",
+    "slug": "todo-app-dcugwlsfccfiwmujaxltj",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/todo-logo.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/todo-logo.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.readyme.todoapp"
+    },
+    "web": {
+      "bundler": "metro",
+      "favicon": "./assets/todo-logo.png"
+    },
+    "plugins": [
+      "expo-status-bar",
+      "@react-native-community/datetimepicker",
+      "expo-sharing"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "f1c6c409-d4d6-459f-bfc1-5dae309446ff"
+      }
+    },
+    "owner": "readymes-team"
+  }
+}
