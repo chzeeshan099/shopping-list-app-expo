@@ -1,14 +1,10 @@
-import React, {
-  useMemo,
-  useState,
-} from 'react';
+import React, { useMemo, useState } from 'react';
 
 import {
   FlatList,
   Pressable,
   SafeAreaView,
   StatusBar,
-  StyleSheet,
   Text,
   View,
 } from 'react-native';
@@ -16,50 +12,108 @@ import {
 import {
   ArrowLeft,
   Check,
+  ChevronDown,
+  ChevronUp,
   RotateCcw,
   Trash2,
+  List,
 } from 'lucide-react-native';
 
 import { useShopping } from '../context/ShoppingContext';
 
-const HistoryScreen = ({
-  navigation,
-}) => {
+const HistoryScreen = ({ navigation }) => {
   const {
     deletedItems,
+    lists,
     restoreMany,
     permanentlyDeleteMany,
   } = useShopping();
 
-  const [selectedIds, setSelectedIds] =
-    useState([]);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [expandedLists, setExpandedLists] = useState({});
 
-  const allSelected =
-    deletedItems.length > 0 &&
-    selectedIds.length ===
-      deletedItems.length;
+  // --------------------------------------------------
+  // GROUP DELETED ITEMS BY LIST
+  // --------------------------------------------------
 
-  const toggleSelection = (id) => {
+  const groupedLists = useMemo(() => {
+    const groups = {};
+
+    deletedItems.forEach((item) => {
+      const listId = item.listId || 'unknown';
+
+      if (!groups[listId]) {
+        const list = lists.find(
+          (currentList) => currentList.id === listId
+        );
+
+        groups[listId] = {
+          id: listId,
+          name: list?.name || 'Unknown List',
+          items: [],
+        };
+      }
+
+      groups[listId].items.push(item);
+    });
+
+    return Object.values(groups);
+  }, [deletedItems, lists]);
+
+  // --------------------------------------------------
+  // TOTAL DELETED ITEMS
+  // --------------------------------------------------
+
+  const totalDeletedItems = deletedItems.length;
+
+  // --------------------------------------------------
+  // TOGGLE ITEM
+  // --------------------------------------------------
+
+  const toggleItemSelection = (itemId) => {
     setSelectedIds((prev) =>
-      prev.includes(id)
-        ? prev.filter(
-            (itemId) => itemId !== id
-          )
-        : [...prev, id]
+      prev.includes(itemId)
+        ? prev.filter((id) => id !== itemId)
+        : [...prev, itemId]
     );
   };
 
-  const selectAll = () => {
+  // --------------------------------------------------
+  // TOGGLE WHOLE LIST
+  // --------------------------------------------------
+
+  const toggleListSelection = (listItems) => {
+    const ids = listItems.map((item) => item.id);
+
+    const allSelected = ids.every((id) =>
+      selectedIds.includes(id)
+    );
+
     if (allSelected) {
-      setSelectedIds([]);
-    } else {
-      setSelectedIds(
-        deletedItems.map(
-          (item) => item.id
-        )
+      setSelectedIds((prev) =>
+        prev.filter((id) => !ids.includes(id))
       );
+    } else {
+      setSelectedIds((prev) => [
+        ...new Set([...prev, ...ids]),
+      ]);
     }
   };
+
+  // --------------------------------------------------
+  // EXPAND / COLLAPSE LIST
+  // --------------------------------------------------
+
+  const toggleListExpanded = (listId) => {
+    setExpandedLists((prev) => ({
+      ...prev,
+      [listId]: !prev[listId],
+    }));
+  };
+
+  // --------------------------------------------------
+  // RESTORE SELECTED
+  // --------------------------------------------------
 
   const restoreSelected = () => {
     if (!selectedIds.length) return;
@@ -68,102 +122,383 @@ const HistoryScreen = ({
     setSelectedIds([]);
   };
 
-  const permanentlyDeleteSelected =
-    () => {
-      if (!selectedIds.length) return;
+  // --------------------------------------------------
+  // PERMANENT DELETE SELECTED
+  // --------------------------------------------------
 
-      permanentlyDeleteMany(
-        selectedIds
-      );
+  const permanentlyDeleteSelected = () => {
+    if (!selectedIds.length) return;
 
-      setSelectedIds([]);
-    };
+    permanentlyDeleteMany(selectedIds);
+    setSelectedIds([]);
+  };
 
-  const renderItem = ({
-    item,
-  }) => {
-    const selected =
-      selectedIds.includes(item.id);
+  // --------------------------------------------------
+  // CATEGORY ICON
+  // --------------------------------------------------
 
-    const total =
-      Number(item.price) *
-      Number(item.quantity);
+  const getCategoryIcon = (category) => {
+    switch (category) {
+      case 'Food':
+        return '🍔';
+
+      case 'Drinks':
+        return '🥤';
+
+      case 'Home':
+        return '🏠';
+
+      case 'Personal':
+        return '🧴';
+
+      case 'Gaming':
+        return '🎮';
+
+      default:
+        return '📦';
+    }
+  };
+
+  // --------------------------------------------------
+  // LIST CARD
+  // --------------------------------------------------
+
+  const renderList = ({ item: listGroup }) => {
+    const isExpanded =
+      expandedLists[listGroup.id] !== false;
+
+    const listItemIds = listGroup.items.map(
+      (item) => item.id
+    );
+
+    const selectedCount = listItemIds.filter((id) =>
+      selectedIds.includes(id)
+    ).length;
+
+    const allListSelected =
+      listGroup.items.length > 0 &&
+      selectedCount === listGroup.items.length;
+
+    const listTotal = listGroup.items.reduce(
+      (sum, item) =>
+        sum +
+        Number(item.price || 0) *
+          Number(item.quantity || 0),
+      0
+    );
 
     return (
-      <Pressable
-        onPress={() =>
-          toggleSelection(item.id)
-        }
-        style={[
-          styles.card,
-          selected &&
-            styles.selectedCard,
-        ]}
-      >
-        <View
-          style={[
-            styles.checkbox,
-            selected &&
-              styles.checkedBox,
-          ]}
-        >
-          {selected && (
-            <Check
-              size={15}
-              color="#080808"
-              strokeWidth={3}
-            />
-          )}
+      <View className="mb-[15px] rounded-[24px] bg-[#111111] border border-[#292929] overflow-hidden">
+
+        {/* ==========================================
+            LIST HEADER
+        ========================================== */}
+
+        <View className="px-[15px] py-[15px]">
+
+          <View className="flex-row items-center">
+
+            {/* LIST ICON */}
+
+            <View className="w-[48px] h-[48px] rounded-[16px] bg-[#1D2510] border border-[#344414] items-center justify-center mr-[12px]">
+              <List
+                size={22}
+                color="#B6FF00"
+              />
+            </View>
+
+            {/* LIST NAME */}
+
+            <View className="flex-1">
+
+              <Text
+                numberOfLines={1}
+                className="text-white text-[16px] font-black"
+              >
+                {listGroup.name}
+              </Text>
+
+              <Text className="text-[#666666] text-[10px] mt-[4px]">
+                {listGroup.items.length}{' '}
+                deleted{' '}
+                {listGroup.items.length === 1
+                  ? 'item'
+                  : 'items'}
+              </Text>
+
+            </View>
+
+            {/* TOTAL */}
+
+            <View className="items-end">
+
+              <Text className="text-[#B6FF00] text-[13px] font-black">
+                ${listTotal.toFixed(2)}
+              </Text>
+
+              <Text className="text-[#555555] text-[8px] mt-[3px]">
+                DELETED VALUE
+              </Text>
+
+            </View>
+
+          </View>
+
+          {/* LIST ACTIONS */}
+
+          <View className="flex-row items-center mt-[14px]">
+
+            {/* SELECT WHOLE LIST */}
+
+            <Pressable
+              onPress={() =>
+                toggleListSelection(
+                  listGroup.items
+                )
+              }
+              className={`flex-1 pl-3 h-[40px] rounded-[12px] border flex-row items-center justify-start gap-[7px] ${
+                allListSelected
+                  ? 'bg-[#B6FF00] border-[#B6FF00]'
+                  : 'bg-[#191919] border-[#303030]'
+              }`}
+            >
+              <View
+                className={`w-[18px] h-[18px] rounded-[5px] border items-center justify-center ${
+                  allListSelected
+                    ? 'bg-[#080808] border-[#080808]'
+                    : 'border-[#555555]'
+                }`}
+              >
+                {allListSelected && (
+                  <Check
+                    size={12}
+                    color="#B6FF00"
+                    strokeWidth={3}
+                  />
+                )}
+              </View>
+
+              <Text
+                className={`text-[9px] font-black ${
+                  allListSelected
+                    ? 'text-[#080808]'
+                    : 'text-[#AAAAAA]'
+                }`}
+              >
+                {allListSelected
+                  ? 'LIST SELECTED'
+                  : 'SELECT LIST'}
+              </Text>
+            </Pressable>
+
+            {/* EXPAND */}
+
+            <Pressable
+              onPress={() =>
+                toggleListExpanded(
+                  listGroup.id
+                )
+              }
+              className="w-[40px] h-[40px] ml-[8px] rounded-[12px] bg-[#191919] border border-[#303030] items-center justify-center"
+            >
+              {isExpanded ? (
+                <ChevronUp
+                  size={18}
+                  color="#B6FF00"
+                />
+              ) : (
+                <ChevronDown
+                  size={18}
+                  color="#B6FF00"
+                />
+              )}
+            </Pressable>
+
+          </View>
+
         </View>
 
-        <View style={styles.iconBox}>
-          <Text style={styles.emoji}>
-            {item.category === 'Food'
-              ? '🍔'
-              : item.category === 'Drinks'
-              ? '🥤'
-              : item.category === 'Home'
-              ? '🏠'
-              : item.category === 'Personal'
-              ? '🧴'
-              : '📦'}
-          </Text>
-        </View>
+        {/* ==========================================
+            DELETED ITEMS
+        ========================================== */}
 
-        <View style={styles.info}>
-          <Text style={styles.name}>
-            {item.name}
-          </Text>
+        {isExpanded && (
+          <View className="px-[15px] pb-[5px]">
 
-          <Text style={styles.meta}>
-            {item.quantity} × $
-            {Number(item.price).toFixed(
-              2
-            )}
-          </Text>
-        </View>
+            {listGroup.items.map((item) => {
+              const selected =
+                selectedIds.includes(item.id);
 
-        <Text style={styles.price}>
-          ${total.toFixed(2)}
-        </Text>
-      </Pressable>
+              const total =
+                Number(item.price || 0) *
+                Number(item.quantity || 0);
+
+              return (
+                <Pressable
+                  key={item.id}
+                  onPress={() =>
+                    toggleItemSelection(
+                      item.id
+                    )
+                  }
+                  className={`min-h-[68px] rounded-[17px] mb-[9px] px-[10px] flex-row items-center border ${
+                    selected
+                      ? 'bg-[#171D08] border-[#B6FF00]'
+                      : 'bg-[#181818] border-[#292929]'
+                  }`}
+                >
+
+                  {/* CHECKBOX */}
+
+                  <View
+                    className={`w-[22px] h-[22px] rounded-[7px] border-[1.5px] items-center justify-center mr-[9px] ${
+                      selected
+                        ? 'bg-[#B6FF00] border-[#B6FF00]'
+                        : 'border-[#444444]'
+                    }`}
+                  >
+                    {selected && (
+                      <Check
+                        size={14}
+                        color="#080808"
+                        strokeWidth={3}
+                      />
+                    )}
+                  </View>
+
+                  {/* CATEGORY */}
+
+                  <View className="w-[40px] h-[40px] rounded-[13px] bg-[#222222] items-center justify-center mr-[10px]">
+                    <Text className="text-[18px]">
+                      {getCategoryIcon(
+                        item.category
+                      )}
+                    </Text>
+                  </View>
+
+                  {/* ITEM INFO */}
+
+                  <View className="flex-1">
+
+                    <Text
+                      numberOfLines={1}
+                      className="text-white text-[13px] font-black"
+                    >
+                      {item.name}
+                    </Text>
+
+                    <Text className="text-[#626262] text-[9px] mt-[4px]">
+                      {item.quantity} × $
+                      {Number(
+                        item.price || 0
+                      ).toFixed(2)}
+                    </Text>
+
+                  </View>
+
+                  {/* ITEM TOTAL */}
+
+                  <Text className="text-[#888888] text-[11px] font-black">
+                    ${total.toFixed(2)}
+                  </Text>
+
+                </Pressable>
+              );
+            })}
+
+          </View>
+        )}
+
+      </View>
     );
   };
 
+  // --------------------------------------------------
+  // EMPTY
+  // --------------------------------------------------
+
+  if (!deletedItems.length) {
+    return (
+      <SafeAreaView className="flex-1 bg-[#080808]">
+
+        <StatusBar
+          barStyle="light-content"
+          backgroundColor="#080808"
+        />
+
+        <View className="h-[82px] px-[18px] flex-row items-center border-b border-[#191919]">
+
+          <Pressable
+            onPress={() =>
+              navigation.goBack()
+            }
+            className="w-[42px] h-[42px] rounded-[14px] bg-[#171717] items-center justify-center"
+          >
+            <ArrowLeft
+              size={21}
+              color="#FFFFFF"
+            />
+          </Pressable>
+
+          <View className="flex-1">
+
+            <Text className="text-white text-center text-[19px] font-black tracking-[1.5px]">
+              HISTORY
+            </Text>
+
+            <Text className="text-[#5E5E5E] text-center text-[10px] mt-[3px]">
+              Deleted shopping lists
+            </Text>
+
+          </View>
+
+          <View className="w-[42px]" />
+
+        </View>
+
+        <View className="flex-1 items-center justify-center">
+
+          <Text className="text-[52px] mb-[15px]">
+            🗑️
+          </Text>
+
+          <Text className="text-white text-[18px] font-black">
+            HISTORY IS EMPTY
+          </Text>
+
+          <Text className="text-[#555555] text-[11px] mt-[7px]">
+            Deleted items will appear here.
+          </Text>
+
+        </View>
+
+      </SafeAreaView>
+    );
+  }
+
+  // --------------------------------------------------
+  // MAIN
+  // --------------------------------------------------
+
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView className="flex-1 bg-[#080808]">
+
       <StatusBar
         barStyle="light-content"
         backgroundColor="#080808"
       />
 
-      {/* HEADER */}
-      <View style={styles.header}>
+      {/* ============================================
+          HEADER
+      ============================================ */}
+
+      <View className="h-[82px] px-[18px] flex-row items-center justify-between border-b border-[#191919]">
+
         <Pressable
           onPress={() =>
             navigation.goBack()
           }
-          style={styles.backButton}
+          className="w-[42px] h-[42px] rounded-[14px] bg-[#171717] items-center justify-center"
         >
           <ArrowLeft
             size={21}
@@ -172,362 +507,113 @@ const HistoryScreen = ({
         </Pressable>
 
         <View>
-          <Text style={styles.title}>
+
+          <Text className="text-white text-center text-[19px] font-black tracking-[1.5px]">
             HISTORY
           </Text>
 
-          <Text style={styles.subtitle}>
-            Deleted shopping items
+          <Text className="text-[#5E5E5E] text-center text-[10px] mt-[3px]">
+            Deleted shopping lists
           </Text>
+
         </View>
 
-        <View style={{ width: 42 }} />
+        <View className="items-end">
+
+          <Text className="text-[#B6FF00] text-[17px] font-black">
+            {totalDeletedItems}
+          </Text>
+
+          <Text className="text-[#555555] text-[7px] font-black tracking-[1px]">
+            ITEMS
+          </Text>
+
+        </View>
+
       </View>
 
-      {/* SELECT ALL */}
-      {deletedItems.length > 0 && (
-        <View style={styles.selectRow}>
-          <Pressable
-            onPress={selectAll}
-            style={styles.selectButton}
-          >
-            <View
-              style={[
-                styles.smallCheckbox,
-                allSelected &&
-                  styles.checkedBox,
-              ]}
-            >
-              {allSelected && (
-                <Check
-                  size={13}
-                  color="#080808"
-                  strokeWidth={3}
-                />
-              )}
-            </View>
-
-            <Text style={styles.selectText}>
-              {allSelected
-                ? 'DESELECT ALL'
-                : 'SELECT ALL'}
-            </Text>
-          </Pressable>
-
-          <Text style={styles.count}>
-            {deletedItems.length} deleted
-          </Text>
-        </View>
-      )}
+      {/* ============================================
+          LIST
+      ============================================ */}
 
       <FlatList
-        data={deletedItems}
-        keyExtractor={(item) => item.id}
-        renderItem={renderItem}
-        contentContainerStyle={
-          styles.list
+        data={groupedLists}
+        keyExtractor={(item) =>
+          item.id
         }
-        showsVerticalScrollIndicator={
-          false
-        }
-        ListEmptyComponent={
-          <View style={styles.empty}>
-            <Text style={styles.emptyIcon}>
-              🗑️
-            </Text>
-
-            <Text style={styles.emptyTitle}>
-              HISTORY IS EMPTY
-            </Text>
-
-            <Text style={styles.emptyText}>
-              Deleted items will appear here.
-            </Text>
-          </View>
-        }
+        renderItem={renderList}
+        contentContainerStyle={{
+          padding: 16,
+          paddingBottom:
+            selectedIds.length > 0
+              ? 115
+              : 25,
+        }}
+        showsVerticalScrollIndicator={false}
       />
 
-      {/* ACTION BAR */}
+      {/* ============================================
+          GLOBAL ACTION BAR
+      ============================================ */}
+
       {selectedIds.length > 0 && (
-        <View style={styles.actionBar}>
+        <View className="absolute left-[15px] right-[15px] bottom-[18px] h-[72px] rounded-[22px] bg-[#191919] border border-[#343434] px-[15px] flex-row items-center justify-between">
+
+          {/* SELECTED */}
+
           <View>
-            <Text style={styles.selectedNumber}>
+
+            <Text className="text-[#B6FF00] text-[19px] font-black">
               {selectedIds.length}
             </Text>
 
-            <Text style={styles.selectedLabel}>
+            <Text className="text-[#666666] text-[7px] font-black tracking-[1px]">
               SELECTED
             </Text>
+
           </View>
 
-          <View style={styles.actionButtons}>
+          {/* ACTIONS */}
+
+          <View className="flex-row gap-[9px]">
+
+            {/* RESTORE */}
+
             <Pressable
               onPress={restoreSelected}
-              style={styles.restoreButton}
+              className="h-[44px] px-[15px] rounded-[14px] bg-[#B6FF00] flex-row items-center gap-[7px]"
             >
               <RotateCcw
                 size={17}
                 color="#080808"
               />
 
-              <Text style={styles.restoreText}>
+              <Text className="text-[#080808] text-[10px] font-black">
                 RESTORE
               </Text>
             </Pressable>
+
+            {/* DELETE */}
 
             <Pressable
               onPress={
                 permanentlyDeleteSelected
               }
-              style={styles.permanentButton}
+              className="w-[44px] h-[44px] rounded-[14px] bg-[#291717] border border-[#4C2828] items-center justify-center"
             >
               <Trash2
                 size={17}
                 color="#FF5A5A"
               />
             </Pressable>
+
           </View>
+
         </View>
       )}
+
     </SafeAreaView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#080808',
-  },
-
-  header: {
-    height: 82,
-    paddingHorizontal: 18,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent:
-      'space-between',
-    borderBottomWidth: 1,
-    borderBottomColor: '#191919',
-  },
-
-  backButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    backgroundColor: '#171717',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  title: {
-    color: '#FFFFFF',
-    textAlign: 'center',
-    fontSize: 19,
-    fontWeight: '900',
-    letterSpacing: 1.5,
-  },
-
-  subtitle: {
-    color: '#5E5E5E',
-    textAlign: 'center',
-    fontSize: 10,
-    marginTop: 3,
-  },
-
-  selectRow: {
-    height: 55,
-    paddingHorizontal: 18,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent:
-      'space-between',
-  },
-
-  selectButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 9,
-  },
-
-  smallCheckbox: {
-    width: 22,
-    height: 22,
-    borderRadius: 7,
-    borderWidth: 1.5,
-    borderColor: '#484848',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  selectText: {
-    color: '#A0A0A0',
-    fontSize: 10,
-    fontWeight: '900',
-  },
-
-  count: {
-    color: '#555555',
-    fontSize: 10,
-  },
-
-  list: {
-    padding: 18,
-    paddingTop: 5,
-    paddingBottom: 130,
-  },
-
-  card: {
-    minHeight: 76,
-    borderRadius: 20,
-    backgroundColor: '#151515',
-    borderWidth: 1,
-    borderColor: '#282828',
-    marginBottom: 10,
-    padding: 11,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-
-  selectedCard: {
-    borderColor: '#B6FF00',
-    backgroundColor: '#161A08',
-  },
-
-  checkbox: {
-    width: 23,
-    height: 23,
-    borderRadius: 7,
-    borderWidth: 1.5,
-    borderColor: '#444444',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 9,
-  },
-
-  checkedBox: {
-    backgroundColor: '#B6FF00',
-    borderColor: '#B6FF00',
-  },
-
-  iconBox: {
-    width: 48,
-    height: 48,
-    borderRadius: 15,
-    backgroundColor: '#202020',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 11,
-  },
-
-  emoji: {
-    fontSize: 22,
-  },
-
-  info: {
-    flex: 1,
-  },
-
-  name: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '900',
-  },
-
-  meta: {
-    color: '#666666',
-    fontSize: 10,
-    marginTop: 5,
-  },
-
-  price: {
-    color: '#777777',
-    fontSize: 13,
-    fontWeight: '900',
-  },
-
-  empty: {
-    alignItems: 'center',
-    paddingTop: 120,
-  },
-
-  emptyIcon: {
-    fontSize: 48,
-    marginBottom: 15,
-  },
-
-  emptyTitle: {
-    color: '#FFFFFF',
-    fontSize: 17,
-    fontWeight: '900',
-  },
-
-  emptyText: {
-    color: '#555555',
-    fontSize: 11,
-    marginTop: 7,
-  },
-
-  actionBar: {
-    position: 'absolute',
-    left: 15,
-    right: 15,
-    bottom: 18,
-    height: 72,
-    borderRadius: 22,
-    backgroundColor: '#191919',
-    borderWidth: 1,
-    borderColor: '#343434',
-    paddingHorizontal: 15,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent:
-      'space-between',
-  },
-
-  selectedNumber: {
-    color: '#B6FF00',
-    fontSize: 19,
-    fontWeight: '900',
-  },
-
-  selectedLabel: {
-    color: '#666666',
-    fontSize: 7,
-    fontWeight: '900',
-    letterSpacing: 1,
-  },
-
-  actionButtons: {
-    flexDirection: 'row',
-    gap: 9,
-  },
-
-  restoreButton: {
-    height: 44,
-    paddingHorizontal: 15,
-    borderRadius: 14,
-    backgroundColor: '#B6FF00',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 7,
-  },
-
-  restoreText: {
-    color: '#080808',
-    fontSize: 10,
-    fontWeight: '900',
-  },
-
-  permanentButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    backgroundColor: '#291717',
-    borderWidth: 1,
-    borderColor: '#4C2828',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
 
 export default HistoryScreen;

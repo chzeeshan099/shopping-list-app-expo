@@ -1,6 +1,4 @@
-import React, {
-  useState,
-} from 'react';
+import React, { useState } from "react";
 
 import {
   Alert,
@@ -11,55 +9,30 @@ import {
   Text,
   TextInput,
   View,
-} from 'react-native';
+} from "react-native";
 
-import {
-  ChevronRight,
-  Plus,
-  Trash2,
-} from 'lucide-react-native';
 
-import { useShopping } from '../context/ShoppingContext';
 
-const EMOJIS = [
-  '🛒',
-  '🏠',
-  '🎉',
-  '✈️',
-  '🏋️',
-  '🎮',
-  '💼',
-];
+import { ChevronRight, Plus, Trash2 , History } from "lucide-react-native";
 
-const ListsScreen = ({
-  navigation,
-}) => {
-  const {
-    lists,
-    allItems,
-    createList,
-    deleteList,
-    selectList,
-  } = useShopping();
+import { useShopping } from "../context/ShoppingContext";
 
-  const [modal, setModal] =
-    useState(false);
+const EMOJIS = ["🛒", "🏠", "🎉", "✈️", "🏋️", "🎮", "💼"];
 
-  const [name, setName] =
-    useState('');
+const ListsScreen = ({ navigation }) => {
+  const { lists, allItems, createList, deleteList, selectList } = useShopping();
 
-  const [budget, setBudget] =
-    useState('');
+  const [modal, setModal] = useState(false);
 
-  const [emoji, setEmoji] =
-    useState('🛒');
+  const [name, setName] = useState("");
+
+  const [budget, setBudget] = useState("");
+
+  const [emoji, setEmoji] = useState("🛒");
 
   const handleCreate = () => {
     if (!name.trim()) {
-      Alert.alert(
-        'Missing name',
-        'Please enter a list name.'
-      );
+      Alert.alert("Missing name", "Please enter a list name.");
       return;
     }
 
@@ -69,66 +42,45 @@ const ListsScreen = ({
       budget,
     });
 
-    setName('');
-    setBudget('');
-    setEmoji('🛒');
+    setName("");
+    setBudget("");
+    setEmoji("🛒");
     setModal(false);
   };
 
   const openList = (list) => {
     selectList(list.id);
 
-    navigation.navigate(
-      'ListDetail',
-      {
-        listId: list.id,
-      }
-    );
+    navigation.navigate("ListDetail", {
+      listId: list.id,
+    });
   };
 
   const handleDelete = (list) => {
-    Alert.alert(
-      'Delete List',
-      `Delete "${list.name}"?`,
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () =>
-            deleteList(list.id),
-        },
-      ]
-    );
+    Alert.alert("Delete List", `Delete "${list.name}"?`, [
+      {
+        text: "Cancel",
+        style: "cancel",
+      },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: () => deleteList(list.id),
+      },
+    ]);
   };
 
   const getListStats = (id) => {
-    const listItems =
-      allItems.filter(
-        (item) =>
-          item.listId === id
-      );
+    const listItems = allItems.filter((item) => item.listId === id);
 
-    const total =
-      listItems.length;
+    const total = listItems.length;
 
-    const completed =
-      listItems.filter(
-        (item) =>
-          item.purchased
-      ).length;
+    const completed = listItems.filter((item) => item.purchased).length;
 
-    const cost =
-      listItems.reduce(
-        (sum, item) =>
-          sum +
-          Number(item.price) *
-            Number(item.quantity),
-        0
-      );
+    const cost = listItems.reduce(
+      (sum, item) => sum + Number(item.price) * Number(item.quantity),
+      0,
+    );
 
     return {
       total,
@@ -141,99 +93,63 @@ const ListsScreen = ({
     <View style={styles.container}>
       <View style={styles.header}>
         <View>
-          <Text style={styles.kicker}>
-            SHOPLIST ⚡
-          </Text>
+          <Text style={styles.kicker}>SHOPLIST ⚡</Text>
 
-          <Text style={styles.title}>
-            MY LISTS
-          </Text>
+          <Text style={styles.title}>MY LISTS</Text>
 
-          <Text style={styles.subtitle}>
-            Everything in one place.
-          </Text>
+          <Text style={styles.subtitle}>Everything in one place.</Text>
         </View>
 
+        {/* HISTORY */}
+
         <Pressable
-          onPress={() =>
-            setModal(true)
-          }
-          style={styles.addButton}
+          onPress={() => navigation.navigate("History")}
+          className="flex-row items-center gap-[7px] px-[12px] h-[42px] rounded-[14px] bg-[#171717] border border-[#303030]"
         >
-          <Plus
-            size={22}
-            color="#080808"
-          />
+          <History size={19} color="#B6FF00" />
+
+          <Text className="text-[#B6FF00] text-[9px] font-black tracking-[0.8px]">
+            HISTORY
+          </Text>
+        </Pressable>
+
+        <Pressable onPress={() => setModal(true)} style={styles.addButton}>
+          <Plus size={22} color="#080808" />
         </Pressable>
       </View>
 
       <FlatList
         data={lists}
-        keyExtractor={(item) =>
-          item.id
-        }
-        contentContainerStyle={
-          styles.list
-        }
-        showsVerticalScrollIndicator={
-          false
-        }
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.list}
+        showsVerticalScrollIndicator={false}
         renderItem={({ item }) => {
-          const stats =
-            getListStats(item.id);
+          const stats = getListStats(item.id);
 
           return (
             <Pressable
-              onPress={() =>
-                openList(item)
-              }
-              style={({ pressed }) => [
-                styles.card,
-                pressed &&
-                  styles.pressed,
-              ]}
+              onPress={() => openList(item)}
+              style={({ pressed }) => [styles.card, pressed && styles.pressed]}
             >
-              <View
-                style={styles.emojiBox}
-              >
-                <Text
-                  style={styles.emoji}
-                >
-                  {item.emoji}
-                </Text>
+              <View style={styles.emojiBox}>
+                <Text style={styles.emoji}>{item.emoji}</Text>
               </View>
 
-              <View
-                style={styles.info}
-              >
-                <Text
-                  style={styles.name}
-                >
-                  {item.name}
+              <View style={styles.info}>
+                <Text style={styles.name}>{item.name}</Text>
+
+                <Text style={styles.meta}>
+                  {stats.total} items • {stats.completed} complete
                 </Text>
 
-                <Text
-                  style={styles.meta}
-                >
-                  {stats.total} items •{' '}
-                  {stats.completed}{' '}
-                  complete
-                </Text>
-
-                <View
-                  style={
-                    styles.progressTrack
-                  }
-                >
+                <View style={styles.progressTrack}>
                   <View
                     style={[
                       styles.progress,
                       {
                         width: `${
                           stats.total
-                            ? (stats.completed /
-                                stats.total) *
-                              100
+                            ? (stats.completed / stats.total) * 100
                             : 0
                         }%`,
                       },
@@ -242,43 +158,18 @@ const ListsScreen = ({
                 </View>
               </View>
 
-              <View
-                style={styles.right}
-              >
-                <Text
-                  style={styles.price}
-                >
-                  $
-                  {stats.cost.toFixed(
-                    2
-                  )}
-                </Text>
+              <View style={styles.right}>
+                <Text style={styles.price}>${stats.cost.toFixed(2)}</Text>
 
-                <View
-                  style={
-                    styles.actions
-                  }
-                >
+                <View style={styles.actions}>
                   <Pressable
-                    onPress={() =>
-                      handleDelete(
-                        item
-                      )
-                    }
-                    style={
-                      styles.deleteButton
-                    }
+                    onPress={() => handleDelete(item)}
+                    style={styles.deleteButton}
                   >
-                    <Trash2
-                      size={15}
-                      color="#FF5A5A"
-                    />
+                    <Trash2 size={15} color="#FF5A5A" />
                   </Pressable>
 
-                  <ChevronRight
-                    size={20}
-                    color="#555555"
-                  />
+                  <ChevronRight size={20} color="#555555" />
                 </View>
               </View>
             </Pressable>
@@ -290,21 +181,11 @@ const ListsScreen = ({
         visible={modal}
         transparent
         animationType="slide"
-        onRequestClose={() =>
-          setModal(false)
-        }
+        onRequestClose={() => setModal(false)}
       >
-        <View
-          style={styles.modalOverlay}
-        >
-          <View
-            style={styles.modal}
-          >
-            <Text
-              style={styles.modalTitle}
-            >
-              NEW SHOPPING LIST
-            </Text>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modal}>
+            <Text style={styles.modalTitle}>NEW SHOPPING LIST</Text>
 
             <TextInput
               value={name}
@@ -323,25 +204,16 @@ const ListsScreen = ({
               style={styles.input}
             />
 
-            <Text
-              style={styles.label}
-            >
-              CHOOSE ICON
-            </Text>
+            <Text style={styles.label}>CHOOSE ICON</Text>
 
-            <View
-              style={styles.emojiRow}
-            >
+            <View style={styles.emojiRow}>
               {EMOJIS.map((item) => (
                 <Pressable
                   key={item}
-                  onPress={() =>
-                    setEmoji(item)
-                  }
+                  onPress={() => setEmoji(item)}
                   style={[
                     styles.emojiChoice,
-                    emoji === item &&
-                      styles.activeEmoji,
+                    emoji === item && styles.activeEmoji,
                   ]}
                 >
                   <Text
@@ -355,35 +227,13 @@ const ListsScreen = ({
               ))}
             </View>
 
-            <View
-              style={styles.modalButtons}
-            >
-              <Pressable
-                onPress={() =>
-                  setModal(false)
-                }
-                style={styles.cancel}
-              >
-                <Text
-                  style={
-                    styles.cancelText
-                  }
-                >
-                  CANCEL
-                </Text>
+            <View style={styles.modalButtons}>
+              <Pressable onPress={() => setModal(false)} style={styles.cancel}>
+                <Text style={styles.cancelText}>CANCEL</Text>
               </Pressable>
 
-              <Pressable
-                onPress={handleCreate}
-                style={styles.create}
-              >
-                <Text
-                  style={
-                    styles.createText
-                  }
-                >
-                  CREATE LIST
-                </Text>
+              <Pressable onPress={handleCreate} style={styles.create}>
+                <Text style={styles.createText}>CREATE LIST</Text>
               </Pressable>
             </View>
           </View>
@@ -396,35 +246,34 @@ const ListsScreen = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#080808',
+    backgroundColor: "#080808",
     paddingTop: 55,
   },
 
   header: {
     paddingHorizontal: 20,
-    flexDirection: 'row',
-    justifyContent:
-      'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 20,
   },
 
   kicker: {
-    color: '#B6FF00',
+    color: "#B6FF00",
     fontSize: 10,
-    fontWeight: '900',
+    fontWeight: "900",
     letterSpacing: 2,
   },
 
   title: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 32,
-    fontWeight: '900',
+    fontWeight: "900",
     marginTop: 4,
   },
 
   subtitle: {
-    color: '#555',
+    color: "#555",
     fontSize: 11,
     marginTop: 3,
   },
@@ -433,9 +282,9 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 17,
-    backgroundColor: '#B6FF00',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#B6FF00",
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   list: {
@@ -445,14 +294,14 @@ const styles = StyleSheet.create({
 
   card: {
     minHeight: 102,
-    backgroundColor: '#151515',
+    backgroundColor: "#151515",
     borderWidth: 1,
-    borderColor: '#292929',
+    borderColor: "#292929",
     borderRadius: 23,
     marginBottom: 12,
     padding: 13,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
 
   pressed: {
@@ -468,9 +317,9 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 19,
-    backgroundColor: '#202020',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#202020",
+    alignItems: "center",
+    justifyContent: "center",
     marginRight: 13,
   },
 
@@ -483,44 +332,44 @@ const styles = StyleSheet.create({
   },
 
   name: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: '900',
+    fontWeight: "900",
   },
 
   meta: {
-    color: '#666',
+    color: "#666",
     fontSize: 10,
     marginTop: 5,
   },
 
   progressTrack: {
     height: 5,
-    backgroundColor: '#2C3000',
+    backgroundColor: "#2C3000",
     borderRadius: 10,
-    overflow: 'hidden',
+    overflow: "hidden",
     marginTop: 10,
   },
 
   progress: {
-    height: '100%',
-    backgroundColor: '#B6FF00',
+    height: "100%",
+    backgroundColor: "#B6FF00",
   },
 
   right: {
-    alignItems: 'flex-end',
+    alignItems: "flex-end",
     marginLeft: 8,
   },
 
   price: {
-    color: '#B6FF00',
+    color: "#B6FF00",
     fontSize: 14,
-    fontWeight: '900',
+    fontWeight: "900",
   },
 
   actions: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginTop: 11,
     gap: 5,
   },
@@ -529,75 +378,74 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 9,
-    backgroundColor: '#291717',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#291717",
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   modalOverlay: {
     flex: 1,
-    backgroundColor:
-      'rgba(0,0,0,0.85)',
-    justifyContent: 'flex-end',
+    backgroundColor: "rgba(0,0,0,0.85)",
+    justifyContent: "flex-end",
   },
 
   modal: {
-    backgroundColor: '#151515',
+    backgroundColor: "#151515",
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     padding: 22,
     paddingBottom: 35,
     borderWidth: 1,
-    borderColor: '#292929',
+    borderColor: "#292929",
   },
 
   modalTitle: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 20,
-    fontWeight: '900',
+    fontWeight: "900",
     marginBottom: 18,
   },
 
   input: {
     height: 52,
-    backgroundColor: '#202020',
+    backgroundColor: "#202020",
     borderRadius: 15,
     paddingHorizontal: 15,
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: '#303030',
+    borderColor: "#303030",
   },
 
   label: {
-    color: '#666',
+    color: "#666",
     fontSize: 9,
-    fontWeight: '900',
+    fontWeight: "900",
     marginTop: 8,
     marginBottom: 9,
   },
 
   emojiRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 8,
-    flexWrap: 'wrap',
+    flexWrap: "wrap",
   },
 
   emojiChoice: {
     width: 44,
     height: 44,
     borderRadius: 13,
-    backgroundColor: '#202020',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#202020",
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   activeEmoji: {
-    backgroundColor: '#B6FF00',
+    backgroundColor: "#B6FF00",
   },
 
   modalButtons: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 10,
     marginTop: 20,
   },
@@ -606,14 +454,14 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 50,
     borderRadius: 15,
-    backgroundColor: '#242424',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#242424",
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   cancelText: {
-    color: '#777',
-    fontWeight: '900',
+    color: "#777",
+    fontWeight: "900",
     fontSize: 10,
   },
 
@@ -621,14 +469,14 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 50,
     borderRadius: 15,
-    backgroundColor: '#B6FF00',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#B6FF00",
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   createText: {
-    color: '#080808',
-    fontWeight: '900',
+    color: "#080808",
+    fontWeight: "900",
     fontSize: 10,
   },
 });
