@@ -6,16 +6,16 @@ import React, {
   useState,
 } from 'react';
 
-import {
-  loadItems,
-  saveItems,
-  clearItems,
-} from '../utils/storage';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const ITEMS_KEY = '@shoplist_items';
+const DELETED_KEY = '@shoplist_deleted_items';
 
 const ShoppingContext = createContext();
 
 export const ShoppingProvider = ({ children }) => {
   const [items, setItems] = useState([]);
+  const [deletedItems, setDeletedItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -23,17 +23,40 @@ export const ShoppingProvider = ({ children }) => {
   }, []);
 
   const initialize = async () => {
-    const savedItems = await loadItems();
-    setItems(savedItems);
-    setLoading(false);
+    try {
+      const savedItems = await AsyncStorage.getItem(ITEMS_KEY);
+      const savedDeleted = await AsyncStorage.getItem(DELETED_KEY);
+
+      setItems(savedItems ? JSON.parse(savedItems) : []);
+      setDeletedItems(
+        savedDeleted ? JSON.parse(savedDeleted) : []
+      );
+    } catch (error) {
+      console.log('Storage load error:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
     if (!loading) {
-      saveItems(items);
+      AsyncStorage.setItem(
+        ITEMS_KEY,
+        JSON.stringify(items)
+      );
     }
   }, [items, loading]);
 
+  useEffect(() => {
+    if (!loading) {
+      AsyncStorage.setItem(
+        DELETED_KEY,
+        JSON.stringify(deletedItems)
+      );
+    }
+  }, [deletedItems, loading]);
+
+  // ADD
   const addItem = ({
     name,
     quantity,
@@ -53,6 +76,7 @@ export const ShoppingProvider = ({ children }) => {
     setItems((prev) => [newItem, ...prev]);
   };
 
+  // UPDATE
   const updateItem = (id, updatedData) => {
     setItems((prev) =>
       prev.map((item) =>
@@ -60,20 +84,40 @@ export const ShoppingProvider = ({ children }) => {
           ? {
               ...item,
               ...updatedData,
-              quantity: Number(updatedData.quantity) || 1,
-              price: Number(updatedData.price) || 0,
+              quantity:
+                Number(updatedData.quantity) || 1,
+              price:
+                Number(updatedData.price) || 0,
             }
           : item
       )
     );
   };
 
+  // DELETE → HISTORY
   const deleteItem = (id) => {
+    const itemToDelete = items.find(
+      (item) => item.id === id
+    );
+
+    if (!itemToDelete) return;
+
+    const deletedItem = {
+      ...itemToDelete,
+      deletedAt: new Date().toISOString(),
+    };
+
+    setDeletedItems((prev) => [
+      deletedItem,
+      ...prev,
+    ]);
+
     setItems((prev) =>
       prev.filter((item) => item.id !== id)
     );
   };
 
+  // COMPLETE / UNCOMPLETE
   const togglePurchased = (id) => {
     setItems((prev) =>
       prev.map((item) =>
@@ -87,15 +131,72 @@ export const ShoppingProvider = ({ children }) => {
     );
   };
 
-  const deletePurchased = () => {
-    setItems((prev) =>
-      prev.filter((item) => !item.purchased)
+  // RESTORE FROM HISTORY
+  const restoreItem = (id) => {
+    const item = deletedItems.find(
+      (item) => item.id === id
+    );
+
+    if (!item) return;
+
+    const restoredItem = {
+      ...item,
+      purchased: false,
+    };
+
+    delete restoredItem.deletedAt;
+
+    setItems((prev) => [
+      restoredItem,
+      ...prev,
+    ]);
+
+    setDeletedItems((prev) =>
+      prev.filter((item) => item.id !== id)
     );
   };
 
-  const resetAll = async () => {
-    setItems([]);
-    await clearItems();
+  // PERMANENT DELETE
+  const permanentlyDelete = (id) => {
+    setDeletedItems((prev) =>
+      prev.filter((item) => item.id !== id)
+    );
+  };
+
+  // PERMANENT DELETE MULTIPLE
+  const permanentlyDeleteMany = (ids) => {
+    setDeletedItems((prev) =>
+      prev.filter((item) => !ids.includes(item.id))
+    );
+  };
+
+  // RESTORE MULTIPLE
+  const restoreMany = (ids) => {
+    const selectedItems = deletedItems.filter(
+      (item) => ids.includes(item.id)
+    );
+
+    const restoredItems = selectedItems.map(
+      (item) => {
+        const restored = {
+          ...item,
+          purchased: false,
+        };
+
+        delete restored.deletedAt;
+
+        return restored;
+      }
+    );
+
+    setItems((prev) => [
+      ...restoredItems,
+      ...prev,
+    ]);
+
+    setDeletedItems((prev) =>
+      prev.filter((item) => !ids.includes(item.id))
+    );
   };
 
   const stats = useMemo(() => {
@@ -105,11 +206,14 @@ export const ShoppingProvider = ({ children }) => {
       (item) => item.purchased
     ).length;
 
-    const pendingItems = totalItems - purchasedItems;
+    const pendingItems =
+      totalItems - purchasedItems;
 
     const totalAmount = items.reduce(
       (sum, item) =>
-        sum + Number(item.price) * Number(item.quantity),
+        sum +
+        Number(item.price) *
+          Number(item.quantity),
       0
     );
 
@@ -117,7 +221,9 @@ export const ShoppingProvider = ({ children }) => {
       .filter((item) => item.purchased)
       .reduce(
         (sum, item) =>
-          sum + Number(item.price) * Number(item.quantity),
+          sum +
+          Number(item.price) *
+            Number(item.quantity),
         0
       );
 
@@ -140,14 +246,19 @@ export const ShoppingProvider = ({ children }) => {
     <ShoppingContext.Provider
       value={{
         items,
+        deletedItems,
         loading,
         stats,
+
         addItem,
         updateItem,
         deleteItem,
         togglePurchased,
-        deletePurchased,
-        resetAll,
+
+        restoreItem,
+        permanentlyDelete,
+        restoreMany,
+        permanentlyDeleteMany,
       }}
     >
       {children}

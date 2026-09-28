@@ -9,6 +9,7 @@ import {
 } from '@react-navigation/native-stack';
 
 import HomeScreen from '../screens/HomeScreen';
+import HistoryScreen from '../screens/HistoryScreen';
 
 
 const Stack =
@@ -39,7 +40,7 @@ export default function AppNavigator() {
 
           contentStyle: {
             backgroundColor:
-              '#f3f4f6',
+              '#080808',
           },
         }}
       >
@@ -51,6 +52,13 @@ export default function AppNavigator() {
           options={{
             title: 'Home Screen',
           }}
+        />
+
+
+       {/* History */}
+        <Stack.Screen
+          name="History"
+          component={HistoryScreen}
         />
 
       

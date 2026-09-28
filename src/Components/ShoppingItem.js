@@ -8,32 +8,42 @@ import {
   View,
 } from 'react-native';
 
+import {
+  Check,
+  CheckCircle2,
+  Edit3,
+  Trash2,
+} from 'lucide-react-native';
+
 const ShoppingItem = ({
   item,
   onToggle,
   onDelete,
   onEdit,
 }) => {
-  const scale = useRef(new Animated.Value(1)).current;
+  const scale = useRef(
+    new Animated.Value(1)
+  ).current;
+
+  const total =
+    Number(item.quantity) *
+    Number(item.price);
 
   const pressIn = () => {
     Animated.spring(scale, {
       toValue: 0.97,
-      useNativeDriver: true,
       friction: 5,
+      useNativeDriver: true,
     }).start();
   };
 
   const pressOut = () => {
     Animated.spring(scale, {
       toValue: 1,
-      useNativeDriver: true,
       friction: 5,
+      useNativeDriver: true,
     }).start();
   };
-
-  const total =
-    Number(item.quantity) * Number(item.price);
 
   return (
     <Animated.View
@@ -44,16 +54,14 @@ const ShoppingItem = ({
         },
       ]}
     >
-      <Pressable
-        onPress={() => onToggle(item.id)}
-        onLongPress={() => onEdit(item)}
-        onPressIn={pressIn}
-        onPressOut={pressOut}
+      <View
         style={[
           styles.card,
-          item.purchased && styles.completedCard,
+          item.purchased &&
+            styles.completedCard,
         ]}
       >
+        {/* PRODUCT ICON */}
         <View style={styles.iconBox}>
           <Text style={styles.icon}>
             {item.category === 'Food'
@@ -64,50 +72,96 @@ const ShoppingItem = ({
               ? '🏠'
               : item.category === 'Personal'
               ? '🧴'
-              : '🛒'}
+              : '📦'}
           </Text>
         </View>
 
+        {/* PRODUCT INFO */}
         <View style={styles.content}>
           <Text
+            numberOfLines={1}
             style={[
               styles.name,
-              item.purchased && styles.completedText,
+              item.purchased &&
+                styles.completedName,
             ]}
-            numberOfLines={1}
           >
             {item.name}
           </Text>
 
           <Text style={styles.meta}>
-            {item.quantity} × ${Number(item.price).toFixed(2)}
+            {item.quantity} × $
+            {Number(item.price).toFixed(2)}
           </Text>
         </View>
 
-        <View style={styles.right}>
+        {/* RIGHT SIDE */}
+        <View style={styles.rightSide}>
           <Text style={styles.total}>
             ${total.toFixed(2)}
           </Text>
 
-          <Pressable
-            onPress={() => onDelete(item.id)}
-            hitSlop={12}
-          >
-            <Text style={styles.delete}>×</Text>
-          </Pressable>
+          {/* THREE BUTTONS SAME ROW */}
+          <View style={styles.actions}>
+            {/* EDIT */}
+            <Pressable
+              onPress={() => onEdit(item)}
+              style={[
+                styles.actionButton,
+                styles.editButton,
+              ]}
+            >
+              <Edit3
+                size={15}
+                color="#FFFFFF"
+                strokeWidth={2.5}
+              />
+            </Pressable>
 
-          <View
-            style={[
-              styles.checkbox,
-              item.purchased && styles.checked,
-            ]}
-          >
-            {item.purchased && (
-              <Text style={styles.check}>✓</Text>
-            )}
+            {/* COMPLETE */}
+            <Pressable
+              onPress={() =>
+                onToggle(item.id)
+              }
+              style={[
+                styles.actionButton,
+                item.purchased
+                  ? styles.completedButton
+                  : styles.completeButton,
+              ]}
+            >
+              {item.purchased ? (
+                <Check
+                  size={16}
+                  color="#080808"
+                  strokeWidth={3}
+                />
+              ) : (
+                <CheckCircle2
+                  size={16}
+                  color="#B6FF00"
+                  strokeWidth={2.5}
+                />
+              )}
+            </Pressable>
+
+            {/* DELETE */}
+            <Pressable
+              onPress={() => onDelete(item)}
+              style={[
+                styles.actionButton,
+                styles.deleteButton,
+              ]}
+            >
+              <Trash2
+                size={15}
+                color="#FF5A5A"
+                strokeWidth={2.5}
+              />
+            </Pressable>
           </View>
         </View>
-      </Pressable>
+      </View>
     </Animated.View>
   );
 };
@@ -118,28 +172,29 @@ const styles = StyleSheet.create({
   },
 
   card: {
-    minHeight: 78,
+    minHeight: 91,
     borderRadius: 22,
-    padding: 12,
+    padding: 11,
     backgroundColor: '#151515',
     borderWidth: 1,
-    borderColor: '#252525',
+    borderColor: '#292929',
     flexDirection: 'row',
     alignItems: 'center',
   },
 
   completedCard: {
-    opacity: 0.58,
+    borderColor: '#354000',
+    backgroundColor: '#121500',
   },
 
   iconBox: {
-    width: 52,
-    height: 52,
+    width: 53,
+    height: 53,
     borderRadius: 17,
     backgroundColor: '#202020',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: 11,
   },
 
   icon: {
@@ -148,66 +203,72 @@ const styles = StyleSheet.create({
 
   content: {
     flex: 1,
+    minWidth: 0,
   },
 
   name: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '800',
+    fontWeight: '900',
     marginBottom: 5,
   },
 
-  completedText: {
+  completedName: {
+    color: '#6D6D6D',
     textDecorationLine: 'line-through',
-    color: '#777777',
   },
 
   meta: {
-    color: '#777777',
-    fontSize: 12,
+    color: '#707070',
+    fontSize: 11,
     fontWeight: '600',
   },
 
-  right: {
+  rightSide: {
     alignItems: 'flex-end',
-    minWidth: 65,
+    marginLeft: 8,
   },
 
   total: {
     color: '#B6FF00',
     fontSize: 15,
     fontWeight: '900',
-    marginBottom: 4,
+    marginBottom: 8,
   },
 
-  delete: {
-    position: 'absolute',
-    right: -2,
-    top: 18,
-    color: '#666666',
-    fontSize: 18,
+  actions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
 
-  checkbox: {
-    width: 22,
-    height: 22,
-    borderRadius: 7,
-    borderWidth: 2,
-    borderColor: '#414141',
+  actionButton: {
+    width: 31,
+    height: 31,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 2,
+    borderWidth: 1,
   },
 
-  checked: {
+  editButton: {
+    backgroundColor: '#242424',
+    borderColor: '#3A3A3A',
+  },
+
+  completeButton: {
+    backgroundColor: '#242900',
+    borderColor: '#596600',
+  },
+
+  completedButton: {
     backgroundColor: '#B6FF00',
     borderColor: '#B6FF00',
   },
 
-  check: {
-    color: '#080808',
-    fontSize: 13,
-    fontWeight: '900',
+  deleteButton: {
+    backgroundColor: '#281717',
+    borderColor: '#4A2525',
   },
 });
 

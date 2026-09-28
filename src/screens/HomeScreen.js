@@ -17,12 +17,27 @@ import {
   View,
 } from 'react-native';
 
+import {
+  History,
+  Plus,
+  Search,
+  X,
+} from 'lucide-react-native';
+
 import { LinearGradient } from 'expo-linear-gradient';
 
 import ShoppingItem from '../Components/ShoppingItem';
 import CategoryChip from '../Components/CategoryChip';
 import AddItemModal from '../Components/AddItemModal';
+import ConfirmDeleteModal from '../Components/ConfirmDeleteModal';
+
 import { useShopping } from '../context/ShoppingContext';
+
+const statusTabs = [
+  ['All', 'ALL'],
+  ['Pending', 'PENDING'],
+  ['Complete', 'COMPLETE'],
+];
 
 const categories = [
   ['All', '⚡'],
@@ -33,7 +48,7 @@ const categories = [
   ['Other', '📦'],
 ];
 
-const HomeScreen = () => {
+const HomeScreen = ({ navigation }) => {
   const {
     items,
     stats,
@@ -44,13 +59,17 @@ const HomeScreen = () => {
   } = useShopping();
 
   const [search, setSearch] = useState('');
-  const [selectedCategory, setSelectedCategory] =
+  const [status, setStatus] = useState('ALL');
+  const [category, setCategory] =
     useState('All');
 
   const [modalVisible, setModalVisible] =
     useState(false);
 
   const [editingItem, setEditingItem] =
+    useState(null);
+
+  const [deleteTarget, setDeleteTarget] =
     useState(null);
 
   const headerAnimation = useRef(
@@ -72,7 +91,7 @@ const HomeScreen = () => {
     const pulse = Animated.loop(
       Animated.sequence([
         Animated.timing(fabScale, {
-          toValue: 1.06,
+          toValue: 1.05,
           duration: 900,
           useNativeDriver: true,
         }),
@@ -91,17 +110,36 @@ const HomeScreen = () => {
 
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
-      const matchesSearch = item.name
-        .toLowerCase()
-        .includes(search.toLowerCase());
+      const matchesSearch =
+        item.name
+          .toLowerCase()
+          .includes(
+            search.toLowerCase()
+          );
+
+      const matchesStatus =
+        status === 'ALL' ||
+        (status === 'PENDING' &&
+          !item.purchased) ||
+        (status === 'COMPLETE' &&
+          item.purchased);
 
       const matchesCategory =
-        selectedCategory === 'All' ||
-        item.category === selectedCategory;
+        category === 'All' ||
+        item.category === category;
 
-      return matchesSearch && matchesCategory;
+      return (
+        matchesSearch &&
+        matchesStatus &&
+        matchesCategory
+      );
     });
-  }, [items, search, selectedCategory]);
+  }, [
+    items,
+    search,
+    status,
+    category,
+  ]);
 
   const openAdd = () => {
     setEditingItem(null);
@@ -115,13 +153,23 @@ const HomeScreen = () => {
 
   const handleSave = (data) => {
     if (editingItem) {
-      updateItem(editingItem.id, data);
+      updateItem(
+        editingItem.id,
+        data
+      );
     } else {
       addItem(data);
     }
 
     setEditingItem(null);
     setModalVisible(false);
+  };
+
+  const confirmDelete = () => {
+    if (!deleteTarget) return;
+
+    deleteItem(deleteTarget.id);
+    setDeleteTarget(null);
   };
 
   const renderHeader = () => (
@@ -136,14 +184,14 @@ const HomeScreen = () => {
                 translateY:
                   headerAnimation.interpolate({
                     inputRange: [0, 1],
-                    outputRange: [-25, 0],
+                    outputRange: [-20, 0],
                   }),
               },
             ],
           },
         ]}
       >
-        <View>
+        <View className=''>
           <Text style={styles.miniTitle}>
             SHOPLIST ⚡
           </Text>
@@ -157,11 +205,24 @@ const HomeScreen = () => {
           </Text>
         </View>
 
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>S</Text>
-        </View>
+        <Pressable
+          onPress={() =>
+            navigation.navigate('History')
+          }
+          style={styles.historyButton}
+        >
+          <History
+            size={19}
+            color="#B6FF00"
+          />
+
+          <Text style={styles.historyText}>
+            HISTORY
+          </Text>
+        </Pressable>
       </Animated.View>
 
+      {/* STATS */}
       <LinearGradient
         colors={['#202900', '#171717']}
         style={styles.statsCard}
@@ -173,7 +234,10 @@ const HomeScreen = () => {
             </Text>
 
             <Text style={styles.statsAmount}>
-              ${stats.totalAmount.toFixed(2)}
+              $
+              {stats.totalAmount.toFixed(
+                2
+              )}
             </Text>
           </View>
 
@@ -189,14 +253,18 @@ const HomeScreen = () => {
         </View>
 
         <View style={styles.progressTrack}>
-          <Animated.View
+          <View
             style={[
               styles.progressBar,
               {
-                width: `${Math.max(
-                  stats.progress * 100,
-                  stats.totalItems ? 5 : 0
-                )}%`,
+                width: `${
+                  Math.max(
+                    stats.progress * 100,
+                    stats.totalItems
+                      ? 5
+                      : 0
+                  )
+                }%`,
               },
             ]}
           />
@@ -204,18 +272,25 @@ const HomeScreen = () => {
 
         <View style={styles.statsBottom}>
           <Text style={styles.progressText}>
-            {stats.purchasedItems} of {stats.totalItems}{' '}
-            purchased
+            {stats.purchasedItems} of{' '}
+            {stats.totalItems} purchased
           </Text>
 
           <Text style={styles.percent}>
-            {Math.round(stats.progress * 100)}%
+            {Math.round(
+              stats.progress * 100
+            )}
+            %
           </Text>
         </View>
       </LinearGradient>
 
+      {/* SEARCH */}
       <View style={styles.searchBox}>
-        <Text style={styles.searchIcon}>⌕</Text>
+        <Search
+          size={21}
+          color="#B6FF00"
+        />
 
         <TextInput
           value={search}
@@ -229,26 +304,69 @@ const HomeScreen = () => {
           <Pressable
             onPress={() => setSearch('')}
           >
-            <Text style={styles.clear}>×</Text>
+            <X
+              size={19}
+              color="#777777"
+            />
           </Pressable>
         )}
       </View>
 
+      {/* STATUS TABS */}
+      <View style={styles.statusTabs}>
+        {statusTabs.map(([label, value]) => (
+          <Pressable
+            key={value}
+            onPress={() => setStatus(value)}
+            style={[
+              styles.statusTab,
+              status === value &&
+                styles.activeStatusTab,
+            ]}
+          >
+            <Text
+              style={[
+                styles.statusText,
+                status === value &&
+                  styles.activeStatusText,
+              ]}
+            >
+              {label}
+            </Text>
+
+            <Text
+              style={[
+                styles.statusCount,
+                status === value &&
+                  styles.activeStatusCount,
+              ]}
+            >
+              {value === 'ALL'
+                ? stats.totalItems
+                : value === 'PENDING'
+                ? stats.pendingItems
+                : stats.purchasedItems}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+
+      {/* CATEGORY FILTER */}
       <FlatList
         horizontal
         showsHorizontalScrollIndicator={false}
         data={categories}
         keyExtractor={(item) => item[0]}
-        contentContainerStyle={styles.categoryList}
+        contentContainerStyle={
+          styles.categoryList
+        }
         renderItem={({ item }) => (
           <CategoryChip
             title={item[0]}
             icon={item[1]}
-            active={
-              selectedCategory === item[0]
-            }
+            active={category === item[0]}
             onPress={() =>
-              setSelectedCategory(item[0])
+              setCategory(item[0])
             }
           />
         )}
@@ -257,19 +375,20 @@ const HomeScreen = () => {
       <View style={styles.listHeader}>
         <View>
           <Text style={styles.listTitle}>
-            YOUR LIST
+            {status === 'ALL'
+              ? 'YOUR LIST'
+              : status === 'PENDING'
+              ? 'PENDING'
+              : 'COMPLETED'}
           </Text>
 
           <Text style={styles.listSubtitle}>
-            {filteredItems.length} items
+            {filteredItems.length}{' '}
+            {filteredItems.length === 1
+              ? 'item'
+              : 'items'}
           </Text>
         </View>
-
-        {stats.purchasedItems > 0 && (
-          <Text style={styles.doneText}>
-            {stats.purchasedItems} DONE ✓
-          </Text>
-        )}
       </View>
     </>
   );
@@ -288,12 +407,14 @@ const HomeScreen = () => {
           <ShoppingItem
             item={item}
             onToggle={togglePurchased}
-            onDelete={deleteItem}
+            onDelete={setDeleteTarget}
             onEdit={openEdit}
           />
         )}
         ListHeaderComponent={renderHeader}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={
+          styles.content
+        }
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <View style={styles.empty}>
@@ -306,17 +427,20 @@ const HomeScreen = () => {
             </Text>
 
             <Text style={styles.emptyText}>
-              Hit the + button and build your list.
+              Add something and build your list.
             </Text>
           </View>
         }
       />
 
+      {/* FAB */}
       <Animated.View
         style={[
           styles.fabWrapper,
           {
-            transform: [{ scale: fabScale }],
+            transform: [
+              { scale: fabScale },
+            ],
           },
         ]}
       >
@@ -324,7 +448,11 @@ const HomeScreen = () => {
           onPress={openAdd}
           style={styles.fab}
         >
-          <Text style={styles.fabPlus}>+</Text>
+          <Plus
+            size={34}
+            color="#080808"
+            strokeWidth={2.5}
+          />
         </Pressable>
       </Animated.View>
 
@@ -336,6 +464,15 @@ const HomeScreen = () => {
         }}
         onSave={handleSave}
         editingItem={editingItem}
+      />
+
+      {/* DELETE CONFIRMATION */}
+      <ConfirmDeleteModal
+        visible={!!deleteTarget}
+        onCancel={() =>
+          setDeleteTarget(null)
+        }
+        onConfirm={confirmDelete}
       />
     </SafeAreaView>
   );
@@ -355,8 +492,9 @@ const styles = StyleSheet.create({
 
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    justifyContent:
+      'space-between',
+    alignItems: 'flex-start',
     marginBottom: 22,
   },
 
@@ -373,7 +511,6 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: '900',
     lineHeight: 31,
-    letterSpacing: -1,
   },
 
   headingAccent: {
@@ -381,22 +518,25 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: '900',
     lineHeight: 34,
-    letterSpacing: -1,
   },
 
-  avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 17,
-    backgroundColor: '#B6FF00',
+  historyButton: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: 7,
+    paddingHorizontal: 12,
+    height: 42,
+    borderRadius: 14,
+    backgroundColor: '#171717',
+    borderWidth: 1,
+    borderColor: '#303030',
   },
 
-  avatarText: {
-    color: '#080808',
-    fontSize: 18,
+  historyText: {
+    color: '#B6FF00',
+    fontSize: 9,
     fontWeight: '900',
+    letterSpacing: 0.8,
   },
 
   statsCard: {
@@ -409,7 +549,8 @@ const styles = StyleSheet.create({
 
   statsTop: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent:
+      'space-between',
     alignItems: 'center',
   },
 
@@ -464,14 +605,14 @@ const styles = StyleSheet.create({
 
   statsBottom: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent:
+      'space-between',
     marginTop: 8,
   },
 
   progressText: {
     color: '#727272',
     fontSize: 10,
-    fontWeight: '600',
   },
 
   percent: {
@@ -489,13 +630,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 15,
-    marginBottom: 14,
-  },
-
-  searchIcon: {
-    color: '#B6FF00',
-    fontSize: 25,
-    marginRight: 8,
+    marginBottom: 12,
+    gap: 9,
   },
 
   searchInput: {
@@ -505,19 +641,55 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
-  clear: {
+  statusTabs: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 13,
+  },
+
+  statusTab: {
+    flex: 1,
+    height: 48,
+    borderRadius: 15,
+    backgroundColor: '#151515',
+    borderWidth: 1,
+    borderColor: '#292929',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+
+  activeStatusTab: {
+    backgroundColor: '#B6FF00',
+    borderColor: '#B6FF00',
+  },
+
+  statusText: {
     color: '#777777',
-    fontSize: 22,
+    fontSize: 11,
+    fontWeight: '900',
+  },
+
+  activeStatusText: {
+    color: '#080808',
+  },
+
+  statusCount: {
+    color: '#555555',
+    fontSize: 10,
+    fontWeight: '800',
+  },
+
+  activeStatusCount: {
+    color: '#273000',
   },
 
   categoryList: {
-    paddingBottom: 23,
+    paddingBottom: 20,
   },
 
   listHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
     marginBottom: 12,
   },
 
@@ -534,15 +706,9 @@ const styles = StyleSheet.create({
     marginTop: 3,
   },
 
-  doneText: {
-    color: '#B6FF00',
-    fontSize: 9,
-    fontWeight: '900',
-  },
-
   empty: {
     alignItems: 'center',
-    paddingTop: 60,
+    paddingTop: 55,
   },
 
   emptyEmoji: {
@@ -575,22 +741,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#B6FF00',
     alignItems: 'center',
     justifyContent: 'center',
-
-    shadowColor: '#B6FF00',
-    shadowOffset: {
-      width: 0,
-      height: 8,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 15,
     elevation: 10,
-  },
-
-  fabPlus: {
-    color: '#080808',
-    fontSize: 35,
-    fontWeight: '400',
-    marginTop: -3,
   },
 });
 
