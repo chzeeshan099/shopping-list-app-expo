@@ -328,19 +328,6 @@ const ListDetailScreen = ({ navigation }) => {
                 </View>
               </View>
 
-              {/* FAVORITES */}
-              <Pressable
-                onPress={() => setFavoritesOnly(!favoritesOnly)}
-                className={`w-[43px] h-[43px] rounded-[14px] items-center justify-center ${
-                  favoritesOnly ? "bg-[#FF6B9A]" : "bg-[#171717]"
-                }`}
-              >
-                <Heart
-                  size={18}
-                  color={favoritesOnly ? "#080808" : "#FF6B9A"}
-                  fill={favoritesOnly ? "#080808" : "transparent"}
-                />
-              </Pressable>
             </View>
 
             {/* ------------------------------------------------
